@@ -29,5 +29,7 @@ func main() {
 
 	db.AutoMigrate(&models.APIKey{})
 
+	api.NewRouter(e, db)
+
 	e.Logger.Fatal(e.Start("localhost:8080"))
 }

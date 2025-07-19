@@ -13,6 +13,12 @@ type APIKeyService struct {
 	akrepo repository.APIKeyRepository
 }
 
+func NewAPIKeyService(akr repository.APIKeyRepository) *APIKeyService {
+	return &APIKeyService{
+		akrepo: akr,
+	}
+}
+
 func (s *APIKeyService) Create(name string) (*dto.APIKeyCreateResponse, error) {
 	var apikey models.APIKey
 

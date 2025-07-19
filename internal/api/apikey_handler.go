@@ -12,6 +12,12 @@ type APIKeyHandler struct {
 	aks service.APIKeyService
 }
 
+func NewAPIKeyHandler(aks service.APIKeyService) *APIKeyHandler {
+	return &APIKeyHandler{
+		aks: aks,
+	}
+}
+
 func (h *APIKeyHandler) Create(c echo.Context) error {
 	name := c.FormValue("name")
 	if strings.TrimSpace(name) == "" {

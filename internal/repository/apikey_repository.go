@@ -11,6 +11,12 @@ type APIKeyRepository struct {
 	db *gorm.DB
 }
 
+func NewAPIKeyRepository(db *gorm.DB) *APIKeyRepository {
+	return &APIKeyRepository{
+		db: db,
+	}
+}
+
 func (repo *APIKeyRepository) Create(ak *models.APIKey) error {
 	if err := repo.db.Create(ak).Error; err != nil {
 		return err
