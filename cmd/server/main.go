@@ -8,7 +8,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"gorm.io/driver/sqlite"
+	sqlite "gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
@@ -24,7 +24,7 @@ func main() {
 
 	db, err := gorm.Open(sqlite.Open("data.db"), &gorm.Config{TranslateError: true})
 	if err != nil {
-		panic("failed to connect database")
+		panic("failed to connect database: " + err.Error())
 	}
 
 	db.AutoMigrate(&models.APIKey{})
