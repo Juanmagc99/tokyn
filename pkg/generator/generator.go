@@ -20,3 +20,11 @@ func GenerateToken() (string, string, error) {
 
 	return token, hashedToken, nil
 }
+
+func GetHash(token string) string {
+
+	hash := sha256.Sum256([]byte(token))
+	hashedToken := hex.EncodeToString(hash[:])
+
+	return hashedToken
+}

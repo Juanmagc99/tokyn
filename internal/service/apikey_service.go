@@ -43,3 +43,29 @@ func (s *APIKeyService) Create(name string) (*dto.APIKeyCreateResponse, error) {
 
 	return akr, nil
 }
+
+func (s *APIKeyService) Revoke(id string) error {
+	err := s.akrepo.Revoke(id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *APIKeyService) CheckToken(token string) (*dto.APIKeyCreateResponse, error) {
+
+	hashedToken := generator.GetHash(token)
+	apikey, err := s.akrepo.FindByHash(hashedToken)
+	if err != nil {
+		return nil, err
+	}
+
+	akr := &dto.APIKeyCreateResponse{
+		ID:    apikey.ID,
+		Token: token,
+		Name:  apikey.Name,
+	}
+
+	return akr, nil
+}
