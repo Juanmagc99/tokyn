@@ -72,6 +72,6 @@ func (h *APIKeyHandler) CheckToken(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, echo.Map{
-		"token": ak,
+		"names": ak.Name,
 	})
 }
