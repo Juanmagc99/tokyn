@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 	"tokyn/internal/models"
 
@@ -87,7 +88,7 @@ func (repo *APIKeyRepository) InsertRedis(ctx context.Context, keyData models.AP
 	return nil
 }
 
-func (repo *APIKeyRepository) GetByHashRedis(ctx context.Context, hash string) (*models.APIKeyRedis, error) {
+func (repo *APIKeyRepository) FindByHashRedis(ctx context.Context, hash string) (*models.APIKeyRedis, error) {
 	val, err := repo.rclient.Get(ctx, hash).Result()
 	if err != nil {
 		return nil, err
@@ -99,4 +100,26 @@ func (repo *APIKeyRepository) GetByHashRedis(ctx context.Context, hash string) (
 	}
 
 	return &apiKey, nil
+}
+
+func (repo *APIKeyRepository) AllowRequest(ctx context.Context, hash string) (bool, error) {
+	counterKey := fmt.Sprintf("rate:%s", hash)
+
+	count, err := repo.rclient.Incr(ctx, counterKey).Result()
+	if err != nil {
+		return false, err
+	}
+
+	if count == 1 {
+		err = repo.rclient.Expire(ctx, counterKey, time.Hour*24*7).Err()
+		if err != nil {
+			return false, err
+		}
+	}
+
+	if count > 100 {
+		return false, nil
+	}
+
+	return true, nil
 }

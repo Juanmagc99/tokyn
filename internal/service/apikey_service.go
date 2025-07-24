@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"tokyn/internal/api/dto"
 	"tokyn/internal/models"
 	"tokyn/internal/repository"
@@ -68,4 +69,34 @@ func (s *APIKeyService) CheckToken(token string) (*dto.APIKeyCreateResponse, err
 	}
 
 	return akr, nil
+}
+
+func (s *APIKeyService) CheckTokenRedis(ctx context.Context, token string) (*dto.APIKeyCreateResponse, error) {
+
+	hashedToken := generator.GetHash(token)
+	apikey, err := s.akrepo.FindByHashRedis(ctx, hashedToken)
+	if err != nil {
+		return nil, err
+	}
+
+	akr := &dto.APIKeyCreateResponse{
+		ID:    apikey.ID,
+		Token: token,
+		Name:  apikey.Name,
+	}
+
+	return akr, nil
+}
+
+func (s *APIKeyService) CheckRateLimit(ctx context.Context, token string) (bool, error) {
+	ok, err := s.akrepo.AllowRequest(ctx, token)
+	if err != nil {
+		return false, err
+	}
+
+	if !ok {
+		return false, nil
+	}
+
+	return true, nil
 }

@@ -54,7 +54,7 @@ func (h *APIKeyHandler) Revoke(c echo.Context) error {
 }
 
 func (h *APIKeyHandler) CheckToken(c echo.Context) error {
-	token := c.Request().Header.Get("X-API-Key")
+	token := c.Param("token")
 	if strings.TrimSpace(token) == "" {
 		token = c.FormValue("token")
 	}
