@@ -1,19 +1,24 @@
 package repository
 
 import (
+	"context"
+	"encoding/json"
 	"time"
 	"tokyn/internal/models"
 
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 type APIKeyRepository struct {
-	db *gorm.DB
+	db      *gorm.DB
+	rclient *redis.Client
 }
 
-func NewAPIKeyRepository(db *gorm.DB) *APIKeyRepository {
+func NewAPIKeyRepository(db *gorm.DB, rclient *redis.Client) *APIKeyRepository {
 	return &APIKeyRepository{
-		db: db,
+		db:      db,
+		rclient: rclient,
 	}
 }
 
@@ -66,4 +71,32 @@ func (repo *APIKeyRepository) Revoke(id string) error {
 	}
 
 	return nil
+}
+
+func (repo *APIKeyRepository) InsertRedis(ctx context.Context, keyData models.APIKeyRedis) error {
+	data, err := json.Marshal(keyData)
+	if err != nil {
+		return err
+	}
+
+	err = repo.rclient.Set(ctx, keyData.KeyHash, data, time.Hour*24).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (repo *APIKeyRepository) GetByHashRedis(ctx context.Context, hash string) (*models.APIKeyRedis, error) {
+	val, err := repo.rclient.Get(ctx, hash).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	var apiKey models.APIKeyRedis
+	if err := json.Unmarshal([]byte(val), &apiKey); err != nil {
+		return nil, err
+	}
+
+	return &apiKey, nil
 }

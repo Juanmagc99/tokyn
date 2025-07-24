@@ -5,12 +5,13 @@ import (
 	"tokyn/internal/service"
 
 	"github.com/labstack/echo/v4"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
-func NewRouter(e *echo.Echo, db *gorm.DB) {
+func NewRouter(e *echo.Echo, db *gorm.DB, rclient *redis.Client) {
 
-	apiKeyRepo := repository.NewAPIKeyRepository(db)
+	apiKeyRepo := repository.NewAPIKeyRepository(db, rclient)
 	apiKeyService := service.NewAPIKeyService(*apiKeyRepo)
 	apiKeyHandler := NewAPIKeyHandler(*apiKeyService)
 

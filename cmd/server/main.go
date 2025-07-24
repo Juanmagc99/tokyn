@@ -3,13 +3,12 @@ package main
 import (
 	"tokyn/internal/api"
 	"tokyn/internal/models"
+	"tokyn/internal/storage"
 	tvalidator "tokyn/pkg/validator"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	sqlite "gorm.io/driver/sqlite"
-	"gorm.io/gorm"
 )
 
 func main() {
@@ -22,14 +21,19 @@ func main() {
 	e.HTTPErrorHandler = api.HandleError
 	e.Validator = &tvalidator.CustomValidator{Validator: validator.New()}
 
-	db, err := gorm.Open(sqlite.Open("data.db"), &gorm.Config{TranslateError: true})
+	db, err := storage.NewSQLDB("data.db")
 	if err != nil {
 		panic("failed to connect database: " + err.Error())
 	}
 
+	rclient, err := storage.NewRedisDB("localhost:6379", "")
+	if err != nil {
+		panic("failed to connect redis: " + err.Error())
+	}
+
 	db.AutoMigrate(&models.APIKey{})
 
-	api.NewRouter(e, db)
+	api.NewRouter(e, db, rclient)
 
 	e.Logger.Fatal(e.Start("localhost:8080"))
 }
