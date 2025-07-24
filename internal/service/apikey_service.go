@@ -8,6 +8,7 @@ import (
 	"tokyn/pkg/generator"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 type APIKeyService struct {
@@ -31,9 +32,19 @@ func (s *APIKeyService) Create(name string) (*dto.APIKeyCreateResponse, error) {
 	apikey.ID = uuid.NewString()
 	apikey.Name = name
 	apikey.KeyHash = hash
-	err = s.akrepo.Create(&apikey)
-	if err != nil {
+
+	if err := s.akrepo.Create(&apikey); err != nil {
 		return nil, err
+	}
+
+	redisData := models.APIKeyRedis{
+		ID:      apikey.ID,
+		KeyHash: apikey.KeyHash,
+		Name:    apikey.Name,
+	}
+
+	if err := s.akrepo.InsertRedis(context.Background(), redisData); err != nil {
+
 	}
 
 	akr := &dto.APIKeyCreateResponse{
@@ -54,38 +65,41 @@ func (s *APIKeyService) Revoke(id string) error {
 	return nil
 }
 
-func (s *APIKeyService) CheckToken(token string) (*dto.APIKeyCreateResponse, error) {
-
+func (s *APIKeyService) CheckToken(ctx context.Context, token string) (*dto.APIKeyCreateResponse, error) {
 	hashedToken := generator.GetHash(token)
+
+	apikeyRedis, err := s.akrepo.FindByHashRedis(ctx, hashedToken)
+	if err == nil {
+		return &dto.APIKeyCreateResponse{
+			ID:    apikeyRedis.ID,
+			Token: token,
+			Name:  apikeyRedis.Name,
+		}, nil
+	}
+
+	if err != redis.Nil {
+		return nil, err
+	}
+
 	apikey, err := s.akrepo.FindByHash(hashedToken)
 	if err != nil {
 		return nil, err
 	}
 
-	akr := &dto.APIKeyCreateResponse{
-		ID:    apikey.ID,
-		Token: token,
-		Name:  apikey.Name,
-	}
-
-	return akr, nil
-}
-
-func (s *APIKeyService) CheckTokenRedis(ctx context.Context, token string) (*dto.APIKeyCreateResponse, error) {
-
-	hashedToken := generator.GetHash(token)
-	apikey, err := s.akrepo.FindByHashRedis(ctx, hashedToken)
+	err = s.akrepo.InsertRedis(ctx, models.APIKeyRedis{
+		ID:      apikey.ID,
+		KeyHash: apikey.KeyHash,
+		Name:    apikey.Name,
+	})
 	if err != nil {
-		return nil, err
+		//Silenced error ;P
 	}
 
-	akr := &dto.APIKeyCreateResponse{
+	return &dto.APIKeyCreateResponse{
 		ID:    apikey.ID,
 		Token: token,
 		Name:  apikey.Name,
-	}
-
-	return akr, nil
+	}, nil
 }
 
 func (s *APIKeyService) CheckRateLimit(ctx context.Context, token string) (bool, error) {

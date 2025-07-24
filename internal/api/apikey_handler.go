@@ -54,6 +54,8 @@ func (h *APIKeyHandler) Revoke(c echo.Context) error {
 }
 
 func (h *APIKeyHandler) CheckToken(c echo.Context) error {
+	ctx := c.Request().Context()
+
 	token := c.Param("token")
 	if strings.TrimSpace(token) == "" {
 		token = c.FormValue("token")
@@ -63,7 +65,16 @@ func (h *APIKeyHandler) CheckToken(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing API token")
 	}
 
-	ak, err := h.aks.CheckToken(token)
+	ok, err := h.aks.CheckRateLimit(ctx, token)
+	if err != nil {
+		return err
+	}
+
+	if !ok {
+		return echo.NewHTTPError(http.StatusTooManyRequests, "Rate limit exceeded")
+	}
+
+	ak, err := h.aks.CheckToken(ctx, token)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return echo.NewHTTPError(http.StatusUnauthorized, "API key does not exist or has been revoked")
