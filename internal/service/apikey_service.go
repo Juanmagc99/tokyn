@@ -57,8 +57,12 @@ func (s *APIKeyService) Create(name string) (*dto.APIKeyCreateResponse, error) {
 }
 
 func (s *APIKeyService) Revoke(id string) error {
-	err := s.akrepo.Revoke(id)
+	apikey, err := s.akrepo.Revoke(id)
 	if err != nil {
+		return err
+	}
+
+	if err := s.akrepo.DeleteRedis(context.Background(), apikey.KeyHash); err != nil {
 		return err
 	}
 

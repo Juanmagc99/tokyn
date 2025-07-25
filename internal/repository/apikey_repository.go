@@ -57,10 +57,10 @@ func (repo *APIKeyRepository) FindByID(id string) (*models.APIKey, error) {
 	return &ak, nil
 }
 
-func (repo *APIKeyRepository) Revoke(id string) error {
+func (repo *APIKeyRepository) Revoke(id string) (*models.APIKey, error) {
 	var ak models.APIKey
 	if err := repo.db.First(&ak, "id = ?", id).Error; err != nil {
-		return err
+		return nil, err
 	}
 
 	now := time.Now()
@@ -68,6 +68,15 @@ func (repo *APIKeyRepository) Revoke(id string) error {
 	ak.RevokedAt = &now
 
 	if err := repo.db.Save(&ak).Error; err != nil {
+		return nil, err
+	}
+
+	return &ak, nil
+}
+
+func (repo *APIKeyRepository) DeleteRedis(ctx context.Context, id string) error {
+	_, err := repo.rclient.Del(ctx, id).Result()
+	if err != nil {
 		return err
 	}
 
