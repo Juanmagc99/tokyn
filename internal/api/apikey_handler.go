@@ -57,9 +57,6 @@ func (h *APIKeyHandler) CheckToken(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	token := c.Param("token")
-	if strings.TrimSpace(token) == "" {
-		token = c.FormValue("token")
-	}
 
 	if strings.TrimSpace(token) == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing API token")
@@ -85,4 +82,19 @@ func (h *APIKeyHandler) CheckToken(c echo.Context) error {
 	return c.JSON(http.StatusOK, echo.Map{
 		"names": ak.Name,
 	})
+}
+
+func (h *APIKeyHandler) Details(c echo.Context) error {
+	id := c.Param("id")
+
+	if strings.TrimSpace(id) == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing id")
+	}
+
+	apk, err := h.aks.Details(id)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, apk)
 }

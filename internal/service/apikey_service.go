@@ -118,3 +118,20 @@ func (s *APIKeyService) CheckRateLimit(ctx context.Context, token string) (bool,
 
 	return true, nil
 }
+
+func (s *APIKeyService) Details(id string) (*dto.APIKeyDetailsResponse, error) {
+	apikey, err := s.akrepo.Details(id)
+	if err != nil {
+		return nil, err
+	}
+
+	apikeyDetails := &dto.APIKeyDetailsResponse{
+		ID:        apikey.ID,
+		Name:      apikey.Name,
+		CreatedAt: apikey.CreatedAt,
+		Revoked:   apikey.Revoked,
+		RevokedAt: apikey.RevokedAt,
+	}
+
+	return apikeyDetails, nil
+}

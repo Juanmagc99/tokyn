@@ -74,6 +74,15 @@ func (repo *APIKeyRepository) Revoke(id string) (*models.APIKey, error) {
 	return &ak, nil
 }
 
+func (repo *APIKeyRepository) Details(id string) (*models.APIKey, error) {
+	var ak models.APIKey
+	if err := repo.db.First(&ak, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+
+	return &ak, nil
+}
+
 func (repo *APIKeyRepository) DeleteRedis(ctx context.Context, id string) error {
 	_, err := repo.rclient.Del(ctx, id).Result()
 	if err != nil {
