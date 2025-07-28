@@ -98,3 +98,22 @@ func (h *APIKeyHandler) Details(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, apk)
 }
+
+func (h *APIKeyHandler) Delete(c echo.Context) error {
+	id := c.Param("id")
+	if strings.TrimSpace(id) == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing API key ID")
+	}
+
+	if err := h.aks.Delete(id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return echo.NewHTTPError(http.StatusUnauthorized, "API key does not exist")
+		}
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to delete API key: "+err.Error())
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "API key deleted",
+		"id":      id,
+	})
+}

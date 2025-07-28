@@ -59,7 +59,7 @@ func (repo *APIKeyRepository) FindByID(id string) (*models.APIKey, error) {
 
 func (repo *APIKeyRepository) Revoke(id string) (*models.APIKey, error) {
 	var ak models.APIKey
-	if err := repo.db.First(&ak, "id = ?", id).Error; err != nil {
+	if err := repo.db.First(&ak, "id = ? AND revoked = false", id).Error; err != nil {
 		return nil, err
 	}
 
@@ -70,6 +70,19 @@ func (repo *APIKeyRepository) Revoke(id string) (*models.APIKey, error) {
 	if err := repo.db.Save(&ak).Error; err != nil {
 		return nil, err
 	}
+
+	return &ak, nil
+}
+
+func (repo *APIKeyRepository) Delete(id string) (*models.APIKey, error) {
+	var ak models.APIKey
+	if err := repo.db.Delete(&ak, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	ak.Revoked = true
+	ak.RevokedAt = &now
 
 	return &ak, nil
 }

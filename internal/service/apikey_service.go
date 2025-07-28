@@ -69,6 +69,19 @@ func (s *APIKeyService) Revoke(id string) error {
 	return nil
 }
 
+func (s *APIKeyService) Delete(id string) error {
+	apikey, err := s.akrepo.Delete(id)
+	if err != nil {
+		return err
+	}
+
+	if err := s.akrepo.DeleteRedis(context.Background(), apikey.KeyHash); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *APIKeyService) CheckToken(ctx context.Context, token string) (*dto.APIKeyCreateResponse, error) {
 	hashedToken := generator.GetHash(token)
 
