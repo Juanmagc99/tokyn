@@ -15,10 +15,11 @@ func NewRouter(e *echo.Echo, db *gorm.DB, rclient *redis.Client) {
 	apiKeyService := service.NewAPIKeyService(*apiKeyRepo)
 	apiKeyHandler := NewAPIKeyHandler(*apiKeyService)
 
-	e.GET("/apikeys/verify/:token", apiKeyHandler.CheckToken)
-	e.GET("/apikeys/:id/details", apiKeyHandler.Details)
-	e.POST("/apikeys", apiKeyHandler.Create)
-	e.DELETE("/apikeys/:id", apiKeyHandler.Revoke)
-	e.DELETE("/apikeys/:id/force", apiKeyHandler.Delete)
+	g := e.Group("/apikeys")
+	g.POST("", apiKeyHandler.Create)
+	g.GET("/:id", apiKeyHandler.Details)
+	g.PATCH("/:id/revocation", apiKeyHandler.Revoke)
+	g.DELETE("/:id", apiKeyHandler.Delete)
+	g.GET("/verification", apiKeyHandler.CheckToken)
 
 }

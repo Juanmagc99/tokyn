@@ -56,7 +56,7 @@ func (h *APIKeyHandler) Revoke(c echo.Context) error {
 func (h *APIKeyHandler) CheckToken(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	token := c.Param("token")
+	token := c.FormValue("token")
 
 	if strings.TrimSpace(token) == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing API token")
