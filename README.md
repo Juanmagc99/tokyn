@@ -144,7 +144,7 @@ This endpoint uses a JSON body (not query or path param for security reasons).
 - [Go](https://golang.org/)
 - [Echo](https://echo.labstack.com/)
 - [GORM](https://gorm.io/) + SQLite
-- [Redis](https://redis.io/) for rate limiting
+- [Redis](https://redis.io/)
 - Docker & Docker Compose
 
 ---
@@ -159,4 +159,4 @@ This endpoint uses a JSON body (not query or path param for security reasons).
 
 ## 📝 License
 
-MIT – see `LICENSE` file for details.
+MIT
