@@ -2,6 +2,8 @@ package service
 
 import (
 	"context"
+	"log"
+	"time"
 	"tokyn/internal/api/dto"
 	"tokyn/internal/models"
 	"tokyn/internal/repository"
@@ -21,7 +23,7 @@ func NewAPIKeyService(akr repository.APIKeyRepository) *APIKeyService {
 	}
 }
 
-func (s *APIKeyService) Create(name string) (*dto.APIKeyCreateResponse, error) {
+func (s *APIKeyService) Create(akc dto.APIKeyCreate) (*dto.APIKeyCreateResponse, error) {
 	var apikey models.APIKey
 
 	tok, hash, err := generator.GenerateToken()
@@ -30,22 +32,19 @@ func (s *APIKeyService) Create(name string) (*dto.APIKeyCreateResponse, error) {
 	}
 
 	apikey.ID = uuid.NewString()
-	apikey.Name = name
+	apikey.Name = akc.Name
 	apikey.KeyHash = hash
+
+	if akc.Hours > 0 {
+		exp := time.Now().Add(time.Hour * time.Duration(akc.Hours))
+		apikey.ExpiresAt = &exp
+	}
 
 	if err := s.akrepo.Create(&apikey); err != nil {
 		return nil, err
 	}
 
-	redisData := models.APIKeyRedis{
-		ID:      apikey.ID,
-		KeyHash: apikey.KeyHash,
-		Name:    apikey.Name,
-	}
-
-	if err := s.akrepo.InsertRedis(context.Background(), redisData); err != nil {
-
-	}
+	s.cacheAPIKey(context.Background(), &apikey)
 
 	akr := &dto.APIKeyCreateResponse{
 		ID:    apikey.ID,
@@ -103,14 +102,21 @@ func (s *APIKeyService) CheckToken(ctx context.Context, token string) (*dto.APIK
 		return nil, err
 	}
 
-	err = s.akrepo.InsertRedis(ctx, models.APIKeyRedis{
-		ID:      apikey.ID,
-		KeyHash: apikey.KeyHash,
-		Name:    apikey.Name,
-	})
-	if err != nil {
-		//Silenced error ;P
+	if !apikey.IsValid() {
+		_, err = s.akrepo.Revoke(apikey.ID)
+		if err != nil {
+			return nil, err
+		}
+
+		err = s.akrepo.DeleteRedis(ctx, apikey.KeyHash)
+		if err != nil {
+			return nil, err
+		}
+
+		return nil, models.ErrAPIKeyInvalid
 	}
+
+	s.cacheAPIKey(ctx, apikey)
 
 	return &dto.APIKeyCreateResponse{
 		ID:    apikey.ID,
@@ -144,7 +150,25 @@ func (s *APIKeyService) Details(id string) (*dto.APIKeyDetailsResponse, error) {
 		CreatedAt: apikey.CreatedAt,
 		Revoked:   apikey.Revoked,
 		RevokedAt: apikey.RevokedAt,
+		ExpiresAt: apikey.ExpiresAt,
 	}
 
 	return apikeyDetails, nil
+}
+
+func (s *APIKeyService) cacheAPIKey(ctx context.Context, ak *models.APIKey) {
+	go func() {
+		ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		defer cancel()
+
+		data := models.APIKeyRedis{
+			ID:      ak.ID,
+			KeyHash: ak.KeyHash,
+			Name:    ak.Name,
+		}
+
+		if err := s.akrepo.InsertRedis(ctx, data); err != nil {
+			log.Printf("warning: failed to cache API key in Redis: %v", err)
+		}
+	}()
 }

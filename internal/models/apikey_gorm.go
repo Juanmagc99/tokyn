@@ -1,8 +1,11 @@
 package models
 
 import (
+	"errors"
 	"time"
 )
+
+var ErrAPIKeyInvalid = errors.New("API key is revoked or expired")
 
 type APIKey struct {
 	ID        string     `gorm:"primaryKey"`
@@ -11,10 +14,13 @@ type APIKey struct {
 	CreatedAt time.Time  `gorm:"not null;autoCreateTime"`
 	Revoked   bool       `gorm:"default:false"`
 	RevokedAt *time.Time `gorm:"default:null"`
+	ExpiresAt *time.Time `gorm:"default:null"`
 }
 
-type APIKeyRedis struct {
-	ID      string `redis:"primaryKey"`
-	KeyHash string `redis:"keyHash"`
-	Name    string `redis:"name"`
+func (a *APIKey) IsValid() bool {
+	if a.ExpiresAt != nil && a.ExpiresAt.After(time.Now()) {
+		return true
+	}
+
+	return false
 }

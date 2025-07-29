@@ -22,12 +22,15 @@ func NewAPIKeyHandler(aks service.APIKeyService) *APIKeyHandler {
 }
 
 func (h *APIKeyHandler) Create(c echo.Context) error {
-	name := c.FormValue("name")
-	if strings.TrimSpace(name) == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Please provided a service name for the key")
+	var req dto.APIKeyCreate
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
+	}
+	if err := c.Validate(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	tk, err := h.aks.Create(name)
+	tk, err := h.aks.Create(req)
 	if err != nil {
 		return err
 	}

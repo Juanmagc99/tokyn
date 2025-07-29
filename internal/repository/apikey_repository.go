@@ -111,7 +111,7 @@ func (repo *APIKeyRepository) InsertRedis(ctx context.Context, keyData models.AP
 		return err
 	}
 
-	err = repo.rclient.Set(ctx, keyData.KeyHash, data, time.Hour*24).Err()
+	err = repo.rclient.Set(ctx, keyData.KeyHash, data, time.Minute*1).Err()
 	if err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (repo *APIKeyRepository) AllowRequest(ctx context.Context, hash string) (bo
 	}
 
 	if count == 1 {
-		err = repo.rclient.Expire(ctx, counterKey, time.Hour*24*7).Err()
+		err = repo.rclient.Expire(ctx, counterKey, time.Hour*1).Err()
 		if err != nil {
 			return false, err
 		}
