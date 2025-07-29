@@ -3,6 +3,7 @@ package api
 import (
 	"tokyn/internal/repository"
 	"tokyn/internal/service"
+	"tokyn/pkg/middleware"
 
 	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
@@ -15,7 +16,7 @@ func NewRouter(e *echo.Echo, db *gorm.DB, rclient *redis.Client) {
 	apiKeyService := service.NewAPIKeyService(*apiKeyRepo)
 	apiKeyHandler := NewAPIKeyHandler(*apiKeyService)
 
-	g := e.Group("/apikeys")
+	g := e.Group("/apikeys", middleware.InternalAuth)
 	g.POST("", apiKeyHandler.Create)
 	g.GET("/:id", apiKeyHandler.Details)
 	g.PATCH("/:id/revocation", apiKeyHandler.Revoke)

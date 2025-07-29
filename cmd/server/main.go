@@ -1,10 +1,10 @@
 package main
 
 import (
+	"tokyn/config"
 	"tokyn/internal/api"
 	"tokyn/internal/models"
 	"tokyn/internal/storage"
-	"tokyn/pkg/utils"
 	tvalidator "tokyn/pkg/validator"
 
 	"github.com/go-playground/validator/v10"
@@ -14,10 +14,7 @@ import (
 
 func main() {
 
-	sqlDBName := utils.GetEnv("SQLITE_DB", "data.db")
-	redisAddr := utils.GetEnv("REDIS_ADDR", "localhost:6379")
-	redisPass := utils.GetEnv("REDIS_PASS", "")
-	bindAddr := utils.GetEnv("APP_ADDR", "0.0.0.0:8080")
+	cfg := config.NewConfig()
 
 	e := echo.New()
 	e.Use(middleware.Recover())
@@ -27,12 +24,12 @@ func main() {
 	e.HTTPErrorHandler = api.HandleError
 	e.Validator = &tvalidator.CustomValidator{Validator: validator.New()}
 
-	db, err := storage.NewSQLDB(sqlDBName)
+	db, err := storage.NewSQLDB(cfg.SQLiteDB)
 	if err != nil {
 		panic("failed to connect database: " + err.Error())
 	}
 
-	rclient, err := storage.NewRedisDB(redisAddr, redisPass)
+	rclient, err := storage.NewRedisDB(cfg.RedisAddr, cfg.RedisPass)
 	if err != nil {
 		panic("failed to connect redis: " + err.Error())
 	}
@@ -41,5 +38,5 @@ func main() {
 
 	api.NewRouter(e, db, rclient)
 
-	e.Logger.Fatal(e.Start(bindAddr))
+	e.Logger.Fatal(e.Start(cfg.AppAddr))
 }
