@@ -17,3 +17,7 @@ type APIKeyDetailsResponse struct {
 	Revoked   bool       `json:"revoked"`
 	RevokedAt *time.Time `json:"revoked_at"`
 }
+
+type VerifyTokenRequest struct {
+	Token string `json:"token"`
+}

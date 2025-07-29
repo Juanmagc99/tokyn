@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"tokyn/internal/api/dto"
 	"tokyn/internal/service"
 
 	"github.com/labstack/echo/v4"
@@ -56,9 +57,13 @@ func (h *APIKeyHandler) Revoke(c echo.Context) error {
 func (h *APIKeyHandler) CheckToken(c echo.Context) error {
 	ctx := c.Request().Context()
 
-	token := c.FormValue("token")
+	var req dto.VerifyTokenRequest
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid JSON body")
+	}
 
-	if strings.TrimSpace(token) == "" {
+	token := strings.TrimSpace(req.Token)
+	if token == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing API token")
 	}
 
