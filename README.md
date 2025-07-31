@@ -9,6 +9,7 @@
 - RESTful API for managing API keys
 - SQLite as the database backend
 - Redis-based rate limiting and cache
+- API key expiration support (optional)
 - Internal security layer using a custom header
 - Lightweight and easy to deploy (Docker-ready)
 - Token verification via JSON body
@@ -25,13 +26,13 @@ docker-compose up --build
 
 Environment variables:
 
-| Variable       | Description                         | Default              |
-|----------------|-------------------------------------|----------------------|
-| `SQLITE_DB`    | Path to SQLite DB file              | `data.db`            |
-| `REDIS_ADDR`   | Redis connection address            | `localhost:6379`     |
-| `REDIS_PASS`   | Redis password (optional)           | `""`                 |
-| `APP_ADDR`     | App bind address (host:port)        | `0.0.0.0:8080`       |
-| `INTERNAL_API_TOKEN` | Internal access token (optional) | _not set_            |
+| Variable             | Description                              | Default              |
+|----------------------|------------------------------------------|----------------------|
+| `SQLITE_DB`          | Path to SQLite DB file                   | `data.db`            |
+| `REDIS_ADDR`         | Redis connection address                 | `localhost:6379`     |
+| `REDIS_PASS`         | Redis password (optional)                | `""`                 |
+| `APP_ADDR`           | App bind address (host:port)             | `0.0.0.0:8080`       |
+| `INTERNAL_API_TOKEN` | Internal access token (optional)         | _not set_            |
 
 ---
 
@@ -63,9 +64,13 @@ All endpoints are grouped under `/apikeys`, protected by internal middleware.
 #### Request body:
 ```json
 {
-  "name": "Service A"
+  "name": "Service A",
+  "hours": 24
 }
 ```
+
+- `hours` is optional. If set, the API key will expire after the given number of hours.
+- If `hours` is not provided or is zero, the API key does not expire.
 
 #### Response:
 ```json
@@ -89,7 +94,8 @@ All endpoints are grouped under `/apikeys`, protected by internal middleware.
   "id": "123",
   "name": "Service A",
   "revoked": false,
-  "revoked_at": null
+  "revoked_at": null,
+  "expires_at": "2024-12-31T23:59:59Z"
 }
 ```
 
@@ -134,8 +140,12 @@ This endpoint uses a JSON body (not query or path param for security reasons).
 ```
 
 #### Error responses:
-- `401 Unauthorized` – token is missing, revoked, or invalid
+- `401 Unauthorized` – token is missing, revoked, expired, or invalid
 - `429 Too Many Requests` – rate limit exceeded
+
+#### Expiration logic:
+- If an API key has expired (based on `expires_at`), it is automatically revoked and deleted from Redis upon verification.
+- Expired API keys are treated as invalid and will no longer be accepted.
 
 ---
 
@@ -153,6 +163,7 @@ This endpoint uses a JSON body (not query or path param for security reasons).
 
 - Tokens are stored hashed in the database.
 - SQLite database is persisted via Docker volume.
+- Expired API keys are revoked automatically upon access.
 - The API is intended for internal use only – it should not be exposed directly to the internet.
 
 ---
